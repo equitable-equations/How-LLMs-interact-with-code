@@ -1,0 +1,105 @@
+---
+title: "Tool calling with R"
+format: html
+---
+
+```{r}
+#| label: setup
+#| message: false
+
+library(tidyverse)
+library(httr2)
+library(ellmer)
+```
+
+LLMs like ChatGPT used to consistently miscount the number of occurrences of letters in strings. They don't any more, probably because they're using tools like this one:
+
+```{r}
+r_counter <- function(word){
+  letters <- str_split_1(word, "")
+  sum(letters == "r") + sum(letters == "R")
+}
+
+r_counter("Strawberry")
+```
+
+Here's one response from Claude:
+
+```{r}
+claude <- chat_anthropic(system_prompt = "You are an adorable chatbot. Give anwers that are accurate, brief and super adorable.")
+claude$chat("How many R's are there in the word strawberry?")
+```
+
+## A question chat can't answer
+
+But obviously there are plenty of things chat still can't do. For instance:
+
+```{r}
+claude$chat("What is the weather like in Lake Forest IL today?")
+```
+
+To fix this, we need to provide our own tool. First we write a function (credit: Albert Rapp).
+
+```{r}
+get_weather_data <- function() {
+  # Get forecast URL from NWS
+  NWS_base_url <- 'https://api.weather.gov'
+  NWS_response <- request(NWS_base_url) |> 
+    req_url_path_append(
+      'points',
+      '42.2445056,-87.8247936'
+    ) |> 
+    req_perform()
+  
+  # Extract forecast URL
+  forecast_url <- NWS_response |> 
+    resp_body_json() |> 
+    pluck('properties', 'forecastHourly')
+  
+  # Get actual forecast data
+  forecast_response <- request(forecast_url) |> 
+    req_perform()
+  
+  # Bring data into tibble format
+  extracted_data <- forecast_response |> 
+    resp_body_json() |> 
+    pluck('properties', 'periods') |> 
+    map_dfr( # iterates over each list and binds rows to a tibble
+      \(x) {
+        tibble(
+          time = x |> pluck('startTime'),
+          temp_F = x |> pluck('temperature'),
+          rain_prob = x |> pluck('probabilityOfPrecipitation', 'value'),
+          forecast = x |> pluck('shortForecast')
+        )
+      }
+    )
+  jsonlite::toJSON(extracted_data, pretty = TRUE)
+}
+```
+
+## Tool registration
+
+Next we turn this function into a *tool* and then give our chat access to it.
+
+```{r}
+weather_tool <- tool(fun = get_weather_data,
+                     description = "Get current weather information for Lake Forest IL")
+
+claude$register_tool(weather_tool)
+```
+
+## The payoff
+
+Now our aborable chatbot can give us an adorable answer to our question:
+
+```{r}
+claude$chat("What is the weather like in Lake Forest IL today?")
+```
+
+Finally, let's see what all this cost us.
+
+```{r}
+claude$get_cost()
+```
+

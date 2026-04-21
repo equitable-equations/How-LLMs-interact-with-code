@@ -1,0 +1,120 @@
+---
+title: "A simple PEC chatbot"
+format: html
+---
+
+```{r}
+#| label: setup
+#| message: false
+
+library(ellmer)
+library(tidyverse)
+```
+
+
+```{r}
+#| label: the r counter function
+
+r_counter <- function(word){
+  letters <- str_split_1(word, "")
+  sum(letters == "r") + sum(letters == "R")
+}
+```
+
+A generic call to an LLM won't suffice for many tasks.
+
+```{r}
+#| label: generic response
+
+generic <- chat_anthropic()
+
+story1 <- generic$chat("Write a 350 (approx) word romance that includes the letter r exactly 50 times.",
+                       echo = FALSE)
+story1
+
+r_counter(story1) # usually wrong
+```
+
+## The planner-executor-critic model
+
+By assigning specific tasks to multiple different chats, we can often do much better. Here we'll create 4: a user-facing control bot, a planner, and executor, and a critic. 
+
+```{r}
+#| label: chat creation
+
+chatbot <- chat_anthropic("You are a user-facing chatbot which provides high quality solutions to complex tasks. Use the provided tools to follow a planner-executor-critic model. If the critic returns an evaluation below 9/10, rerun the cycle to incorporate its feedback. Make your revision requests SPECIFIC and ACTIONABLE so the new executor output will be correct. Iterate this process a maximum of THREE times, total, and return the best execution.")
+
+planner <- chat_anthropic(system_prompt = "You are a planner. Your job is to make a specific odered task list which another LLM will carry out. Do NOT execute the steps or attempt to fulfill the prompt. Instead, return a prompt for the executor LLM.")
+
+executor <- chat_anthropic(system_prompt = "You are an executor. Your job is to follow the steps provided EXACTLY, returning a COMPLETE and ACCURATE response to the request.")
+
+critic <- chat_anthropic(system_prompt = "You are an evaluator. Your job is to compare the task list provided and the response generated and decide if the task has been completed satisfactorily. Provide an integer evaluate from 1 (worst) to 10 (best). Provide SPECIFIC instructions for modifying the response to meet the demands of the prompt. Do NOT provide instructions for starting over.")
+```
+
+Next we create and register tools so that the user-facing chatbot can make use of them.
+
+```{r}
+#| label: tool creation
+
+create_plan <- function(prompt){
+  planner$chat(prompt, 
+               echo = FALSE)
+}
+
+execute_plan <- function(plan){
+  executor$chat(plan, 
+                echo = FALSE)
+}
+
+evaluate_response <- function(plan, response){
+  critic$chat(paste("Plan:", plan, "Response:", response),
+              echo = FALSE)
+}
+
+create_plan_tool <- tool(create_plan, 
+                         description = "use the planner LLM to create a specific plan for fulfilling the user's request.",
+                         arguments = list(prompt = type_string("the user's request.")))
+
+execute_plan_tool <- tool(execute_plan, 
+                          description = "use the executor LLM to carry out the execution plan for the user's prompt.",
+                          arguments = list(plan = type_string("the plan to be carried out.")))
+
+evaluate_response_tool <- tool(evaluate_response, 
+                               description = "use the critic LLM to evaluate the executor's fulfillment of the plan.",
+                               arguments = list(plan = type_string("the plan to be carried out."),
+                                                response = type_string("the response to be evaluated.")))
+tools <- c(create_plan_tool,
+           execute_plan_tool,
+           evaluate_response_tool)
+
+chatbot$register_tools(tools)
+```
+
+## Testing it out
+
+In this example, we ask for a very specific count of one letter. Let's provide a tool to the critic for checking that this requirement is satisfied by the executor.
+
+```{r}
+#| label: r counter tool
+
+r_counter_tool <- tool(r_counter, 
+                       description = "count the number of r's in a string",
+                       arguments = list(word = type_string("the string to consider")))
+
+critic$register_tool(r_counter_tool)
+```
+
+Let's see this in action.
+
+```{r}
+#| label: final product
+
+chatbot$chat("Write a 350 (approx) word romance that includes the letter r exactly 50 times.")
+
+chatbot$get_cost()
+planner$get_cost()
+executor$get_cost()
+critic$get_cost()
+```
+
+Highly inefficient, sure, but it's not hard to improve. 

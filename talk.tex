@@ -1,0 +1,96 @@
+\documentclass[10pt]{beamer}
+\usepackage[orientation=landscape,size=custom,width=16,height=9,scale=0.5, debug]{beamerposter} 
+\setbeamertemplate{background} 
+{
+    \includegraphics[width=\paperwidth,height=\paperheight]{branded_background.png}
+}
+\usetheme[progressbar=frametitle]{metropolis}
+
+\usepackage[T1]{fontenc}
+\usepackage{newunicodechar}
+%\usepackage[utf8]{inputenc}
+
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{adjustbox}
+\usepackage{hyperref}
+\usepackage[scale=2]{ccicons}
+
+% For pseudo codes
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\makeatletter
+\def\BState{\State\hskip-\ALG@thistlm}
+\makeatother
+%
+
+\usepackage{multirow}
+\usepackage[none]{hyphenat}
+\usepackage{textcomp}
+\usepackage{gensymb}
+\sloppy 
+%\usebackgroundtemplate
+
+
+\usepackage{pgfplots}
+\usepgfplotslibrary{dateplot}
+
+\usepackage{xspace}
+\newcommand{\themename}{\textbf{\textsc{metropolis}}\xspace}
+
+\setbeamercolor{background canvas}{bg=white!20}
+
+\date{}
+\title{LLMs and tool calling}
+\titlegraphic{\small\center Andrew Gard - \href{mailto:equitable.equations$@$gmail.com}{equitable.equations@gmail.com\hspace{.5cm}} \\
+}
+
+
+
+% logo of IPST 2019
+% \logo{\includegraphics[width=1cm]{face.png}\hfill}
+\newcommand{\nologo}{\setbeamertemplate{logo}{}} % command to set the logo to nothing
+\newcommand{\congress}
+
+% footer
+\makeatletter
+\setbeamertemplate{footline}
+{
+  \leavevmode%
+  \hbox{%
+
+  \begin{beamercolorbox}[wd=.9\paperwidth,ht=2.25ex,dp=1ex,center]{institute in head/foot}%
+    \usebeamerfont{abstract}%
+    \congress
+  \end{beamercolorbox}%
+
+  \begin{beamercolorbox}[wd=.1\paperwidth,ht=2.25ex,dp=1ex,right]{institute in head/foot}%
+    \usebeamerfont{abstract} 
+  \end{beamercolorbox}}%
+  
+}
+\makeatother
+
+
+
+% Document begin %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+\maketitle
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{frame}
+Talk outline:
+
+\begin{figure}[htbp] %  figure placement: here, top, bottom, or page
+   \includegraphics[width=4in]{collage.png} 
+\end{figure}
+\end{frame}
+
+\begin{frame}
+\begin{figure}[htbp] %  figure placement: here, top, bottom, or page
+   \centering
+   \includegraphics[width=3in]{miscount.png} 
+\end{figure}
+\end{frame}
+
+\end{document}
