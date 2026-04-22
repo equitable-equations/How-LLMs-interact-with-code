@@ -1,6 +1,7 @@
 ---
 title: "A simple PEC chatbot"
 format: html
+embed-resources: true
 ---
 
 ```{r}
@@ -42,13 +43,13 @@ By assigning specific tasks to multiple different chats, we can often do much be
 ```{r}
 #| label: chat creation
 
-chatbot <- chat_anthropic("You are a user-facing chatbot which provides high quality solutions to complex tasks. Use the provided tools to follow a planner-executor-critic model. If the critic returns an evaluation below 9/10, rerun the cycle to incorporate its feedback. Make your revision requests SPECIFIC and ACTIONABLE so the new executor output will be correct. Iterate this process a maximum of THREE times, total, and return the best execution.")
+chatbot <- chat_anthropic(system_prompt = "You are a user-facing chatbot which provides high quality solutions to complex tasks. Use the provided tools to follow a planner-executor-critic model. If the critic returns an evaluation below 9/10, rerun the cycle to reflect its feedback. In this situation, pass along the critic's revisions to the executor (or, if absolutely necessary, to the planner) EXACTLY, adding only an instruction that the executor MODIFY its previous attempt per these revision. It should NOT start over from scratch. Do NOT add additional edits of your own. Iterate this process a maximum of THREE times, total, and return the best execution. NEVER directly revise or even evaluate the executor's responses.")
 
-planner <- chat_anthropic(system_prompt = "You are a planner. Your job is to make a specific odered task list which another LLM will carry out. Do NOT execute the steps or attempt to fulfill the prompt. Instead, return a prompt for the executor LLM.")
+planner <- chat_anthropic(system_prompt = "You are a planner. Your job is to turn the user's prompt into a specific, ordered task list which another LLM will later use to complete the request in a VERY high quality manner. Do NOT execute the task list or attempt to fulfill the prompt. Instead, return a prompt for an executor LLM.")
 
 executor <- chat_anthropic(system_prompt = "You are an executor. Your job is to follow the steps provided EXACTLY, returning a COMPLETE and ACCURATE response to the request.")
 
-critic <- chat_anthropic(system_prompt = "You are an evaluator. Your job is to compare the task list provided and the response generated and decide if the task has been completed satisfactorily. Provide an integer evaluate from 1 (worst) to 10 (best). Provide SPECIFIC instructions for modifying the response to meet the demands of the prompt. Do NOT provide instructions for starting over.")
+critic <- chat_anthropic(system_prompt = "You are an evaluator. Your job is to compare the prompt provided and the response generated and decide if the task has been completed satisfactorily. Provide an integer evaluation from 1 (worst) to 10 (best). For scores lower than 9, provide a SPECIFIC plan for MODIFYING the response to meet the demands of the prompt. Do NOT provide instructions for starting over.")
 ```
 
 Next we create and register tools so that the user-facing chatbot can make use of them.
@@ -66,23 +67,27 @@ execute_plan <- function(plan){
                 echo = FALSE)
 }
 
-evaluate_response <- function(plan, response){
-  critic$chat(paste("Plan:", plan, "Response:", response),
+evaluate_response <- function(prompt, response){
+    critic$chat(paste("Prompt:", prompt, "Response:", response),
               echo = FALSE)
 }
 
-create_plan_tool <- tool(create_plan, 
-                         description = "use the planner LLM to create a specific plan for fulfilling the user's request.",
-                         arguments = list(prompt = type_string("the user's request.")))
+create_plan_tool <- 
+  tool(create_plan, 
+       description = "use the planner LLM to create a specific plan for fulfilling the user's request.",
+       arguments = list(prompt = type_string("the user's request.")))
 
-execute_plan_tool <- tool(execute_plan, 
-                          description = "use the executor LLM to carry out the execution plan for the user's prompt.",
-                          arguments = list(plan = type_string("the plan to be carried out.")))
+execute_plan_tool <- 
+  tool(execute_plan, 
+       description = "use the executor LLM to carry out the execution plan for the user's prompt.",
+       arguments = list(plan = type_string("the plan to be carried out.")))
 
-evaluate_response_tool <- tool(evaluate_response, 
-                               description = "use the critic LLM to evaluate the executor's fulfillment of the plan.",
-                               arguments = list(plan = type_string("the plan to be carried out."),
-                                                response = type_string("the response to be evaluated.")))
+evaluate_response_tool <- 
+  tool(evaluate_response, 
+       description = "use the critic LLM to evaluate the executor's fulfillment of the plan.",
+       arguments = list(prompt = type_string("the user's original prompt."),
+                        response = type_string("the response to be evaluated.")))
+
 tools <- c(create_plan_tool,
            execute_plan_tool,
            evaluate_response_tool)
@@ -97,9 +102,10 @@ In this example, we ask for a very specific count of one letter. Let's provide a
 ```{r}
 #| label: r counter tool
 
-r_counter_tool <- tool(r_counter, 
-                       description = "count the number of r's in a string",
-                       arguments = list(word = type_string("the string to consider")))
+r_counter_tool <- 
+  tool(r_counter, 
+       description = "count the number of r's in a string",
+       arguments = list(word = type_string("the string to consider")))
 
 critic$register_tool(r_counter_tool)
 ```
@@ -117,4 +123,4 @@ executor$get_cost()
 critic$get_cost()
 ```
 
-Highly inefficient, sure, but it's not hard to improve. 
+Highly inefficient, sure, but not hard to improve. 

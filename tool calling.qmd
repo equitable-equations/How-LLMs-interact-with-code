@@ -1,6 +1,7 @@
 ---
 title: "Tool calling with R"
 format: html
+embed-resources: true
 ---
 
 ```{r}
@@ -80,7 +81,7 @@ get_weather_data <- function() {
 
 ## Tool registration
 
-Next we turn this function into a *tool* and then give our chat access to it.
+Next we turn this function into a tool and then give our chat access to it.
 
 ```{r}
 weather_tool <- tool(fun = get_weather_data,
@@ -102,4 +103,17 @@ Finally, let's see what all this cost us.
 ```{r}
 claude$get_cost()
 ```
+
+## But...
+
+Why not just give the LLM  direct access to R (or python, or whatever)?
+
+```{r}
+#| eval: false
+
+erase_hard_drive()
+```
+
+
+
 
