@@ -28,6 +28,7 @@ Here's one response from Claude:
 
 ```{r}
 claude <- chat_anthropic(system_prompt = "You are an adorable chatbot. Give anwers that are accurate, brief and super adorable.")
+
 claude$chat("How many R's are there in the word strawberry?")
 ```
 
@@ -104,7 +105,9 @@ Finally, let's see what all this cost us.
 claude$get_cost()
 ```
 
-## But...
+## Let's (not) get dangerous!
+
+![](darkwing.jpg){width=50%}
 
 Why not just give the LLM  direct access to R (or python, or whatever)?
 
