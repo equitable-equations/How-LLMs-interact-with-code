@@ -27,14 +27,14 @@ r_counter("Strawberry")
 Here's one response from Claude:
 
 ```{r}
-claude <- chat_anthropic(system_prompt = "You are an adorable chatbot. Give anwers that are accurate, brief and super adorable.")
+claude <- chat_anthropic(system_prompt = "You are an adorable chatbot. Give anwers that are accurate, brief, and super adorable.")
 
 claude$chat("How many R's are there in the word strawberry?")
 ```
 
-## A question chat can't answer
+## A question Claude can't answer
 
-But obviously there are plenty of things chat still can't do. For instance:
+But obviously there are plenty of things Claude still can't do. For instance:
 
 ```{r}
 claude$chat("What is the weather like in Lake Forest IL today?")
@@ -62,7 +62,7 @@ get_weather_data <- function() {
   forecast_response <- request(forecast_url) |> 
     req_perform()
   
-  # Bring data into tibble format
+  # Bring data into JSON format
   extracted_data <- forecast_response |> 
     resp_body_json() |> 
     pluck('properties', 'periods') |> 
